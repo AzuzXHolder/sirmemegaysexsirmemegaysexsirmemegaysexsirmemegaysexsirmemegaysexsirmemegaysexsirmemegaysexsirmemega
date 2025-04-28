@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Video Player</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --secondary: #2980b9;
+            --background: #1a1a1a;
+            --text: #ffffff;
+            --controls-bg: rgba(0, 0, 0, 0.7);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        .video-container {
+            position: relative;
+            width: 80%;
+            max-width: 1000px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+        
+        .video-container:hover {
+            transform: scale(1.01);
+        }
+        
+        video {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 8px;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px;
+            background: var(--controls-bg);
+            transform: translateY(100%);
+            opacity: 0;
+            transition: transform 0.4s ease, opacity 0.4s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .video-container:hover .controls {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            cursor: pointer;
+            margin-bottom: 5px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--primary);
+            border-radius: 3px;
+            position: relative;
+            transition: background 0.2s ease;
+        }
+        
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: 50%;
+            transform: translateY(-50%) scale(0);
+            width: 12px;
+            height: 12px;
+            background: var(--primary);
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+        }
+        
+        .progress-container:hover .progress-bar::after {
+            transform: translateY(-50%) scale(1);
+        }
+        
+        .control-buttons {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .left-controls, .right-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        button {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 16px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+        
+        button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.1);
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+        }
+        
+        .play-pause:hover {
+            background: var(--secondary);
+        }
+        
+        .volume-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .volume-slider {
+            width: 80px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .volume-level {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 100%;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+        
+        .time {
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .video-title {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 8px 16px;
+            background: var(--controls-bg);
+            border-radius: 4px;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .video-container:hover .video-title {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Full screen styles */
+        .video-container.fullscreen {
+            width: 100%;
+            max-width: none;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            border-radius: 0;
+        }
+        
+        .video-container.fullscreen video {
+            border-radius: 0;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        /* Animations */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <video id="myVideo" src="https://archive.org/download/full-cgi-mc-movie/Full%20CGI%20MC%20Movie.mp4"></video>
+        
+        <div class="video-title">A Minecraft Movie - Directed by Osama Bin Laden</div>
+        
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="spinner"></div>
+        </div>
+        
+        <div class="controls">
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <div class="control-buttons">
+                <div class="left-controls">
+                    <button class="play-pause" id="playPauseBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                    </button>
+                    
+                    <div class="volume-container">
+                        <button id="muteBtn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                            </svg>
+                        </button>
+                        
+                        <div class="volume-slider" id="volumeSlider">
+                            <div class="volume-level" id="volumeLevel"></div>
+                        </div>
+                    </div>
+                    
+                    <span class="time" id="currentTime">0:00</span>
+                    <span class="time">/</span>
+                    <span class="time" id="duration">0:00</span>
+                </div>
+                
+                <div class="right-controls">
+                    <button id="pipBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <rect x="12" y="11" width="8" height="5" rx="1" ry="1"></rect>
+                        </svg>
+                    </button>
+                    
+                    <button id="fullscreenBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <polyline points="9 21 3 21 3 15"></polyline>
+                            <line x1="21" y1="3" x2="14" y2="10"></line>
+                            <line x1="3" y1="21" x2="10" y2="14"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const video = document.getElementById('myVideo');
+            const videoContainer = document.querySelector('.video-container');
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            const muteBtn = document.getElementById('muteBtn');
+            const fullscreenBtn = document.getElementById('fullscreenBtn');
+            const pipBtn = document.getElementById('pipBtn');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const volumeSlider = document.getElementById('volumeSlider');
+            const volumeLevel = document.getElementById('volumeLevel');
+            const currentTimeEl = document.getElementById('currentTime');
+            const durationEl = document.getElementById('duration');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            
+            // Play/Pause functionality
+            function togglePlay() {
+                if (video.paused) {
+                    video.play();
+                    updatePlayButton(false);
+                    playPauseBtn.classList.add('pulse');
+                    setTimeout(() => playPauseBtn.classList.remove('pulse'), 500);
+                } else {
+                    video.pause();
+                    updatePlayButton(true);
+                }
+            }
+            
+            function updatePlayButton(isPaused) {
+                playPauseBtn.innerHTML = isPaused ? 
+                    `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>` : 
+                    `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="6" y="4" width="4" height="16"></rect>
+                        <rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>`;
+            }
+            
+            // Time formatting
+            function formatTime(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                seconds = Math.floor(seconds % 60);
+                return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            }
+            
+            // Progress functionality
+            function updateProgress() {
+                const percent = (video.currentTime / video.duration) * 100;
+                progressBar.style.width = `${percent}%`;
+                currentTimeEl.textContent = formatTime(video.currentTime);
+            }
+            
+            function setProgress(e) {
+                const width = progressContainer.clientWidth;
+                const clickX = e.offsetX;
+                const duration = video.duration;
+                
+                video.currentTime = (clickX / width) * duration;
+            }
+            
+            // Volume functionality
+            function updateVolumeIcon() {
+                if (video.muted || video.volume === 0) {
+                    muteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        <line x1="23" y1="9" x2="17" y2="15"></line>
+                        <line x1="17" y1="9" x2="23" y2="15"></line>
+                    </svg>`;
+                } else if (video.volume < 0.5) {
+                    muteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>`;
+                } else {
+                    muteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                    </svg>`;
+                }
+            }
+            
+            function toggleMute() {
+                video.muted = !video.muted;
+                if (video.muted) {
+                    volumeLevel.style.width = '0%';
+                } else {
+                    volumeLevel.style.width = `${video.volume * 100}%`;
+                }
+                updateVolumeIcon();
+            }
+            
+            function setVolume(e) {
+                const rect = volumeSlider.getBoundingClientRect();
+                const width = rect.width;
+                const clickX = e.clientX - rect.left;
+                
+                let volume = clickX / width;
+                volume = Math.max(0, Math.min(1, volume));
+                
+                video.volume = volume;
+                volumeLevel.style.width = `${volume * 100}%`;
+                
+                if (volume === 0) {
+                    video.muted = true;
+                } else {
+                    video.muted = false;
+                }
+                
+                updateVolumeIcon();
+            }
+            
+            // Fullscreen functionality
+            function toggleFullscreen() {
+                if (!document.fullscreenElement) {
+                    if (videoContainer.requestFullscreen) {
+                        videoContainer.requestFullscreen();
+                    } else if (videoContainer.mozRequestFullScreen) {
+                        videoContainer.mozRequestFullScreen();
+                    } else if (videoContainer.webkitRequestFullscreen) {
+                        videoContainer.webkitRequestFullscreen();
+                    } else if (videoContainer.msRequestFullscreen) {
+                        videoContainer.msRequestFullscreen();
+                    }
+                    videoContainer.classList.add('fullscreen');
+                    fullscreenBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="4 14 10 14 10 20"></polyline>
+                        <polyline points="20 10 14 10 14 4"></polyline>
+                        <line x1="14" y1="10" x2="21" y2="3"></line>
+                        <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>`;
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.mozCancelFullScreen) {
+                        document.mozCancelFullScreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                    videoContainer.classList.remove('fullscreen');
+                    fullscreenBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <polyline points="9 21 3 21 3 15"></polyline>
+                        <line x1="21" y1="3" x2="14" y2="10"></line>
+                        <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>`;
+                }
+            }
+            
+            // Picture-in-Picture
+            function togglePiP() {
+                if (document.pictureInPictureElement) {
+                    document.exitPictureInPicture();
+                } else if (document.pictureInPictureEnabled) {
+                    video.requestPictureInPicture();
+                }
+            }
+            
+            // Loading indicator
+            function showLoading() {
+                loadingOverlay.style.opacity = '1';
+                loadingOverlay.style.visibility = 'visible';
+            }
+            
+            function hideLoading() {
+                loadingOverlay.style.opacity = '0';
+                setTimeout(() => {
+                    loadingOverlay.style.visibility = 'hidden';
+                }, 300);
+            }
+            
+            // Event listeners
+            playPauseBtn.addEventListener('click', togglePlay);
+            video.addEventListener('click', togglePlay);
+            video.addEventListener('timeupdate', updateProgress);
+            
+            progressContainer.addEventListener('click', setProgress);
+            
+            muteBtn.addEventListener('click', toggleMute);
+            volumeSlider.addEventListener('click', setVolume);
+            
+            fullscreenBtn.addEventListener('click', toggleFullscreen);
+            pipBtn.addEventListener('click', togglePiP);
+            
+            video.addEventListener('loadstart', showLoading);
+            video.addEventListener('waiting', showLoading);
+            video.addEventListener('playing', hideLoading);
+            video.addEventListener('canplay', hideLoading);
+            
+            video.addEventListener('loadedmetadata', () => {
+                durationEl.textContent = formatTime(video.duration);
+            });
+            
+            document.addEventListener('fullscreenchange', () => {
+                if (!document.fullscreenElement) {
+                    videoContainer.classList.remove('fullscreen');
+                    fullscreenBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <polyline points="9 21 3 21 3 15"></polyline>
+                        <line x1="21" y1="3" x2="14" y2="10"></line>
+                        <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>`;
+                }
+            });
+            
+            // Double-click for fullscreen
+            video.addEventListener('dblclick', toggleFullscreen);
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') {
+                    togglePlay();
+                    e.preventDefault();
+                } else if (e.code === 'ArrowRight') {
+                    video.currentTime += 10;
+                } else if (e.code === 'ArrowLeft') {
+                    video.currentTime -= 10;
+                } else if (e.code === 'ArrowUp') {
+                    video.volume = Math.min(1, video.volume + 0.1);
+                    volumeLevel.style.width = `${video.volume * 100}%`;
+                    updateVolumeIcon();
+                } else if (e.code === 'ArrowDown') {
+                    video.volume = Math.max(0, video.volume - 0.1);
+                    volumeLevel.style.width = `${video.volume * 100}%`;
+                    updateVolumeIcon();
+                } else if (e.code === 'KeyF') {
+                    toggleFullscreen();
+                } else if (e.code === 'KeyM') {
+                    toggleMute();
+                }
+            });
+            
+            // Initialize
+            video.volume = 0.7;
+            volumeLevel.style.width = `${video.volume * 100}%`;
+            updateVolumeIcon();
+        });
+    </script>
+</body>
+</html>
