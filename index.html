@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta property="og:title" content="A Minecraft Movie - Directed by Adolf Hitler & Osama Bin Laden">
+    <meta property="og:title" content="A Minecraft Movie">
     <meta property="og:description" content="Watch this Minecraft movie with custom video player controls">
     <meta property="og:url" content="https://chickenjockeyomgnoway.vercel.app/">
     <meta property="og:image" content="https://github.com/AzuzXHolder/sirmemegaysexsirmemegaysexsirmemegaysexsirmemegaysexsirmemegaysexsirmemegaysexsirmemegaysexsirmemega/blob/main/Screenshot%202025-04-23%20122754.png?raw=true">
@@ -12,7 +12,7 @@
     <meta property="og:video:width" content="1280">
     <meta property="og:video:height" content="720">
     <meta property="og:type" content="video.movie">
-    <title>A Minecraft Movie - Directed by Adolf Hitler & Osama Bin Laden</title>
+    <title>A Minecraft Movie</title>
     <style>
         :root {
             --primary: #3498db;
@@ -37,6 +37,7 @@
             align-items: center;
             min-height: 100vh;
             overflow: hidden;
+            flex-direction: column;
         }
         
         .video-container {
@@ -47,6 +48,7 @@
             border-radius: 8px;
             overflow: hidden;
             transition: transform 0.3s ease;
+            margin-top: 20px;
         }
         
         .video-container:hover {
@@ -250,6 +252,7 @@
             left: 0;
             z-index: 9999;
             border-radius: 0;
+            margin-top: 0;
         }
         
         .video-container.fullscreen video {
@@ -268,13 +271,79 @@
         .pulse {
             animation: pulse 0.5s ease;
         }
+        
+        /* Title Toggle switch */
+        .toggle-container {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        .toggle-label {
+            font-size: 16px;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
+    <div class="toggle-container">
+        <span class="toggle-label">Change Name:</span>
+        <label class="toggle-switch">
+            <input type="checkbox" id="titleToggle" checked>
+            <span class="slider"></span>
+        </label>
+    </div>
+    
     <div class="video-container">
         <video id="myVideo" src="https://archive.org/download/full-cgi-mc-movie/Full%20CGI%20MC%20Movie.mp4"></video>
         
-        <div class="video-title">A Minecraft Movie - Directed by Adolf Hitler & Osama Bin Laden</div>
+        <div class="video-title" id="videoTitle">A Minecraft Movie</div>
         
         <div class="loading-overlay" id="loadingOverlay">
             <div class="spinner"></div>
@@ -348,6 +417,28 @@
             const currentTimeEl = document.getElementById('currentTime');
             const durationEl = document.getElementById('duration');
             const loadingOverlay = document.getElementById('loadingOverlay');
+            const titleToggle = document.getElementById('titleToggle');
+            const videoTitle = document.getElementById('videoTitle');
+            
+            // Title toggle functionality
+            const appropriateTitle = "A Minecraft Movie";
+            const originalTitle = "A Minecraft Movie - Directed by Adolf Hitler & Osama Bin Laden";
+            
+            titleToggle.addEventListener('change', () => {
+                if (titleToggle.checked) {
+                    videoTitle.textContent = appropriateTitle;
+                    document.title = appropriateTitle;
+                    document.querySelector('meta[property="og:title"]').setAttribute('content', appropriateTitle);
+                } else {
+                    videoTitle.textContent = originalTitle;
+                    document.title = originalTitle;
+                    document.querySelector('meta[property="og:title"]').setAttribute('content', originalTitle);
+                }
+            });
+            
+            // Set initial title state
+            videoTitle.textContent = appropriateTitle;
+            document.title = appropriateTitle;
             
             // Play/Pause functionality
             function togglePlay() {
